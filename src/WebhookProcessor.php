@@ -26,12 +26,14 @@ class WebhookProcessor
         $this->ensureValidSignature();
 
         if (! $this->config->webhookProfile->shouldProcess($this->request)) {
-            return;
+            return $this->createResponse();
         }
 
         $webhookCall = $this->storeWebhook();
 
         $this->processWebhook($webhookCall);
+
+        return $this->createResponse();
     }
 
     protected function ensureValidSignature()
@@ -53,7 +55,7 @@ class WebhookProcessor
     protected function processWebhook(WebhookCall $webhookCall): void
     {
         try {
-            $job = new $this->config->processWebhookJob($webhookCall);
+            $job = new $this->config->processWebhookJobClass($webhookCall);
 
             $webhookCall->clearException();
 
@@ -63,5 +65,10 @@ class WebhookProcessor
 
             throw $exception;
         }
+    }
+
+    protected function createResponse()
+    {
+        return $this->config->webhookResponse->respondToValidWebhook($this->request, $this->config);
     }
 }
